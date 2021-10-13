@@ -23,11 +23,18 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MapFragment : Fragment() {
 
+    private lateinit var carLocation: LatLng
     private lateinit var mMap: GoogleMap
     private lateinit var layout: View
-    private var mapReady = false
-    private lateinit var carLocation: LatLng
     private var binding: MapFragmentBinding? = null
+    private val requiredPermissionsList = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
+    private var mapReady = false
+    private val requestMultiplePermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        permissions ->
+        permissions.entries.forEach{
+            Log.e("DEBUG", "${it.key} = ${it.value}")
+        }
+    }
 
     private val viewModel: MapViewModel by lazy {
         ViewModelProvider(this).get(MapViewModel::class.java)
@@ -93,6 +100,14 @@ class MapFragment : Fragment() {
             }
         }
 
+    /*
+    - Google Documentation as of 10.13.21
+    If your app targets Android 12 or higher, you can't request the ACCESS_FINE_LOCATION permission
+    by itself. You must also request the ACCESS_COARSE_LOCATION permission, and you must include
+    both permissions in a single runtime request. If you try to request only ACCESS_FINE_LOCATION,
+    the system ignores the request
+     */
+
     private fun checkPermissions() {
         when {
             ContextCompat.checkSelfPermission(
@@ -103,10 +118,7 @@ class MapFragment : Fragment() {
                 requireContext(),
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED -> {
-                layout.showDialog(
-                    getString(R.string.permission_granted),
-                    null
-                ) {}
+                //Continue action that requires permission
             }
             shouldShowRequestPermissionRationale(
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -122,8 +134,8 @@ class MapFragment : Fragment() {
             }
 
             else -> {
-                requestPermissionLauncher.launch(
-                    Manifest.permission.ACCESS_FINE_LOCATION
+                requestMultiplePermissions.launch(
+                    requiredPermissionsList
                 )
             }
         }
