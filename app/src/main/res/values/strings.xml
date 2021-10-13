@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Whered You Park The Car</string>
     <string name="title_activity_maps">MapsActivity</string>
+
+    <string name="permission_required">Location access is required to find your location.</string>
+    <string name="ok">OK</string>
+    <string name="permission_granted">Location is granted.</string>
 </resources>
