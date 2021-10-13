@@ -1,7 +1,9 @@
 package com.brenbailey.wheredyouparkthecar.ui.maps
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.location.Location
 import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
 import android.util.Log
@@ -13,26 +15,38 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.brenbailey.wheredyouparkthecar.R
 import com.brenbailey.wheredyouparkthecar.databinding.MapFragmentBinding
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.tasks.CancellationToken
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MapFragment : Fragment() {
 
     private lateinit var carLocation: LatLng
+    private lateinit var currentLocation: Location
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var mMap: GoogleMap
     private lateinit var layout: View
     private var binding: MapFragmentBinding? = null
+    var permissionsGranted: Boolean = false
     private val requiredPermissionsList = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
     private var mapReady = false
     private val requestMultiplePermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         permissions ->
         permissions.entries.forEach{
             Log.e("DEBUG", "${it.key} = ${it.value}")
+            permissionsGranted = it.value
+        }
+        if (permissionsGranted == true) {
+            getLocation(fusedLocationClient)
         }
     }
 
@@ -52,14 +66,17 @@ class MapFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        Log.d("View?", " is going on?")
         val fragmentBinding = MapFragmentBinding.inflate(inflater)
         binding = fragmentBinding
         return fragmentBinding.root
     }
 
+    @SuppressLint("MissingPermission")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+
 
         layout = view
         view.let {
@@ -68,20 +85,27 @@ class MapFragment : Fragment() {
                 updateMap()
             })
 
+            viewModel.currentLocation.observe(viewLifecycleOwner, { currentLocation ->
+                if (currentLocation != null) {
+                    mMap.isMyLocationEnabled = true
+                }
+            })
+
             val mapFragment =
                 childFragmentManager.findFragmentById(R.id.mapFragmentId) as? SupportMapFragment?
             mapFragment?.getMapAsync { googleMap ->
                 mMap = googleMap
                 mapReady = true
-                //updateMap()
-                val sydney = LatLng(-34.0, 151.0)
-                mMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-                mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
-
                 checkPermissions()
             }
         }
 
+    }
+
+    private fun updateUserLocation(currentLocation: Location) {
+        val userLocation = LatLng(currentLocation.latitude, currentLocation.longitude)
+        mMap.addMarker(MarkerOptions().position(userLocation).title("User Location"))
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(userLocation))
     }
 
     private fun updateMap() {
@@ -108,6 +132,7 @@ class MapFragment : Fragment() {
     the system ignores the request
      */
 
+    @SuppressLint("MissingPermission")
     private fun checkPermissions() {
         when {
             ContextCompat.checkSelfPermission(
@@ -119,6 +144,7 @@ class MapFragment : Fragment() {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED -> {
                 //Continue action that requires permission
+                getLocation(fusedLocationClient)
             }
             shouldShowRequestPermissionRationale(
                 Manifest.permission.ACCESS_FINE_LOCATION
@@ -127,8 +153,8 @@ class MapFragment : Fragment() {
                     getString(R.string.permission_required),
                     getString(R.string.ok)
                 ) {
-                    requestPermissionLauncher.launch(
-                        Manifest.permission.ACCESS_FINE_LOCATION
+                    requestMultiplePermissions.launch(
+                        requiredPermissionsList
                     )
                 }
             }
@@ -164,6 +190,10 @@ class MapFragment : Fragment() {
                 }
                 .show()
         }
+    }
+
+    private fun getLocation(fusedLocationCLient: FusedLocationProviderClient) {
+        viewModel.getLocation(fusedLocationCLient)
     }
 
 }
