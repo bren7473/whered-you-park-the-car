@@ -20,7 +20,7 @@
         android:theme="@style/Theme.WheredYouParkTheCar">
 
         <activity
-            android:name=".MapsActivity"
+            android:name=".MainActivity"
             android:exported="true"
             android:label="@string/title_activity_maps">
             <intent-filter>
