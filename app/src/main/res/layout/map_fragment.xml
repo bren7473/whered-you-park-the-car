@@ -1,22 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    tools:context=".ui.maps.MapFragment">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <data>
 
         <variable
             name="viewModel"
             type="com.brenbailey.wheredyouparkthecar.ui.maps.MapViewModel" />
+
     </data>
 
-    <androidx.fragment.app.FragmentContainerView
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:id="@+id/mapFragmentId"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:useViewLifecycle="true"
-        />
+        tools:context=".ui.maps.MapFragment">
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/mapFragmentId"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:useViewLifecycle="true"/>
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|right"
+            android:layout_margin="16dp"
+            android:onClick="@{() -> viewModel.carLocationSetter()}"
+            app:srcCompat="@drawable/ic_car_park"
+            android:contentDescription="TODO" />
+
+
+
+    </FrameLayout>
 
 </layout>

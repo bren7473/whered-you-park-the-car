@@ -13,6 +13,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.databinding.DataBindingUtil
+import androidx.fragment.app.viewModels
 import com.brenbailey.wheredyouparkthecar.R
 import com.brenbailey.wheredyouparkthecar.databinding.MapFragmentBinding
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -29,13 +31,15 @@ import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MapFragment : Fragment() {
+    private val viewModel: MapViewModel by viewModels()
 
     private lateinit var carLocation: LatLng
     private lateinit var currentLocation: Location
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var mMap: GoogleMap
     private lateinit var layout: View
-    private var binding: MapFragmentBinding? = null
+    private var _binding: MapFragmentBinding? = null
+    private val binding get() = _binding!!
     var permissionsGranted: Boolean = false
     private val requiredPermissionsList = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
     private var mapReady = false
@@ -50,25 +54,19 @@ class MapFragment : Fragment() {
         }
     }
 
-    private val viewModel: MapViewModel by lazy {
-        ViewModelProvider(this).get(MapViewModel::class.java)
-    }
-
-    val callback = OnMapReadyCallback { googleMap ->
-        val sydney = LatLng(-34.0, 151.0)
-        googleMap.addMarker(MarkerOptions().position(sydney).title("Marker in Sydney"))
-        googleMap.moveCamera(CameraUpdateFactory.newLatLng(sydney))
-    }
-
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        val fragmentBinding = MapFragmentBinding.inflate(inflater)
-        binding = fragmentBinding
-        return fragmentBinding.root
+        _binding = DataBindingUtil.inflate(
+            inflater, R.layout.map_fragment, container, false
+        )
+
+        binding.viewModel = viewModel
+        binding.lifecycleOwner = viewLifecycleOwner
+
+        return binding.root
     }
 
     @SuppressLint("MissingPermission")
@@ -77,12 +75,11 @@ class MapFragment : Fragment() {
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
-
         layout = view
         view.let {
             viewModel.carLocation.observe(viewLifecycleOwner, { carLocation ->
                 this.carLocation = carLocation
-                updateMap()
+                setCarLocation()
             })
 
             viewModel.currentLocation.observe(viewLifecycleOwner, { currentLocation ->
@@ -99,30 +96,18 @@ class MapFragment : Fragment() {
                 checkPermissions()
             }
         }
-
     }
 
-    private fun updateUserLocation(currentLocation: Location) {
-        val userLocation = LatLng(currentLocation.latitude, currentLocation.longitude)
-        mMap.addMarker(MarkerOptions().position(userLocation).title("User Location"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(userLocation))
+
+    private fun setCarLocation() {
+        mMap.addMarker(MarkerOptions().position(carLocation).title("User Location"))
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(carLocation))
     }
 
     private fun updateMap() {
         TODO("Not yet implemented")
     }
-
-
-    private val requestPermissionLauncher =
-        registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { isGranted: Boolean ->
-            if (isGranted) {
-                Log.i("Permission: ", "Granted")
-            } else {
-                Log.i("Permission: ", "Denied")
-            }
-        }
+    
 
     /*
     - Google Documentation as of 10.13.21
