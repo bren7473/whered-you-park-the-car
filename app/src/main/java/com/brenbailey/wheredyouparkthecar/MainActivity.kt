@@ -12,6 +12,8 @@ class MainActivity : AppCompatActivity(R.layout.activity_main){
         super.onCreate(savedInstanceState)
 
         topAppBar = findViewById(R.id.topAppBar)
+        setSupportActionBar(topAppBar)
+        /*
         topAppBar.setOnMenuItemClickListener { menuItem ->
             when (menuItem.itemId) {
                 R.id.favorite -> {
@@ -21,5 +23,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main){
                 else -> false
             }
         }
+
+         */
     }
 }

@@ -7,12 +7,11 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.location.Location
+import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
+import android.view.*
 import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
@@ -61,6 +60,7 @@ class MapFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        setHasOptionsMenu(true)
         _binding = DataBindingUtil.inflate(
             inflater, R.layout.map_fragment, container, false
         )
@@ -113,17 +113,35 @@ class MapFragment : Fragment() {
                 val savedCarLocation: Set<String>? = sharedPreferences?.getStringSet("car_location", setOf(""))
                 sharedPreferences?.getString("something", "default")?.let { it1 -> Log.d("int", it1) }
                 if (!savedCarLocation?.elementAt(0).isNullOrEmpty()) {
-                    val savedCarLocLatLng = savedCarLocation?.elementAt(0)?.let { it1 ->
-                        LatLng(
-                            it1.toDouble(),
-                            savedCarLocation.elementAt(1).toDouble()
-                        )
+                    val savedLocation = Location(LocationManager.GPS_PROVIDER)
+                    if (savedCarLocation != null) {
+                        savedLocation.latitude = savedCarLocation.elementAt(0).toDouble()
+                        savedLocation.longitude = savedCarLocation.elementAt(1).toDouble()
+                        Log.d("saved lat", savedLocation.latitude.toString())
                     }
-                    viewModel.savedCarLocationGetter(savedCarLocLatLng)
+                    viewModel.savedCarLocationGetter(savedLocation)
                 }
             }
         }
     }
+
+    override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
+        inflater.inflate(R.menu.top_app_bar, menu)
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.findDistance -> {
+                // navigate to settings screen
+                Log.d("fragment menu click", " triggered")
+                viewModel.distanceCalculator()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+
 
     override fun onResume() {
         super.onResume()
@@ -135,11 +153,12 @@ class MapFragment : Fragment() {
     }
 
 
-    private fun setCarLocation(carLocation: LatLng) {
+    private fun setCarLocation(carLocation: Location) {
         //val bitmap = Bitmap.createBitmap(R.drawable.ic_my_location)
+        val latLng = LatLng(carLocation.latitude, carLocation.longitude)
         carLocationMarker.remove()
-        carLocationMarker =
-            mMap.addMarker(MarkerOptions().position(carLocation).title("Car Location"))
+        carLocationMarker = mMap.addMarker(
+            MarkerOptions().position(latLng).title("Car Location"))
                 //.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_foreground)))
     }
 
