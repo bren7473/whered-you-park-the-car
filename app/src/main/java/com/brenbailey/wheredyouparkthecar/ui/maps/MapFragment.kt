@@ -2,11 +2,12 @@ package com.brenbailey.wheredyouparkthecar.ui.maps
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import android.location.Location
 import android.os.Bundle
-import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -28,30 +29,32 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 class MapFragment : Fragment() {
     private val viewModel: MapViewModel by viewModels()
 
-    private lateinit var carLocation: LatLng
-    private lateinit var currentLocation: Location
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var layout: View
     private lateinit var currentLocationMarker: Marker
     private lateinit var carLocationMarker: Marker
     private lateinit var mMap: GoogleMap
+    private lateinit var sharedPreferences: SharedPreferences
 
     private var _binding: MapFragmentBinding? = null
     private val binding get() = _binding!!
     var permissionsGranted: Boolean = false
-    private val requiredPermissionsList = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
+    private val requiredPermissionsList = arrayOf(
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    )
     private var mapReady = false
 
-    private val requestMultiplePermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        permissions ->
-        permissions.entries.forEach{
-            Log.e("DEBUG", "${it.key} = ${it.value}")
-            permissionsGranted = it.value
+    private val requestMultiplePermissions =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+            permissions.entries.forEach {
+                Log.e("DEBUG", "${it.key} = ${it.value}")
+                permissionsGranted = it.value
+            }
+            if (permissionsGranted == true) {
+                getLocation(fusedLocationClient)
+            }
         }
-        if (permissionsGranted == true) {
-            getLocation(fusedLocationClient)
-        }
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -73,32 +76,51 @@ class MapFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
+        sharedPreferences = activity?.getPreferences(Context.MODE_PRIVATE)!!;
 
         layout = view
-        view.let {
-            viewModel.carLocation.observe(viewLifecycleOwner, { carLocation ->
-                this.carLocation = carLocation
-                setCarLocation()
-            })
 
-            viewModel.currentLocation.observe(viewLifecycleOwner, { currentLocation ->
-                if (currentLocation != null) {
-                    this.currentLocation = currentLocation
-                    updateMyLocation()
+
+        val mapFragment =
+            childFragmentManager.findFragmentById(R.id.mapFragmentId) as? SupportMapFragment?
+        mapFragment?.getMapAsync { googleMap ->
+            mMap = googleMap
+            mapReady = true
+            currentLocationMarker = mMap.addMarker(
+                MarkerOptions().position(LatLng(-33.3, 45.4)).title("User Location")
+                    .visible(false)
+            )
+            carLocationMarker = mMap.addMarker(
+                MarkerOptions().position(LatLng(-33.3, 45.4)).title("User Location")
+                    .visible(false)
+            )
+
+            view.let {
+                viewModel.carLocation.observe(viewLifecycleOwner, { carLocation ->
+                    val location =
+                        setOf(carLocation.latitude.toString(), carLocation.longitude.toString())
+                    sharedPreferences?.edit()?.putStringSet("car_location", location)?.apply()
+                    sharedPreferences?.edit()?.putString("something", "not default")?.apply()
+                    setCarLocation(carLocation)
+                })
+
+                viewModel.currentLocation.observe(viewLifecycleOwner, { currentLocation ->
+                    if (currentLocation != null) {
+                        updateMyLocation(currentLocation)
+                    }
+                })
+
+                val savedCarLocation: Set<String>? = sharedPreferences?.getStringSet("car_location", setOf(""))
+                sharedPreferences?.getString("something", "default")?.let { it1 -> Log.d("int", it1) }
+                if (!savedCarLocation?.elementAt(0).isNullOrEmpty()) {
+                    val savedCarLocLatLng = savedCarLocation?.elementAt(0)?.let { it1 ->
+                        LatLng(
+                            it1.toDouble(),
+                            savedCarLocation.elementAt(1).toDouble()
+                        )
+                    }
+                    viewModel.savedCarLocationGetter(savedCarLocLatLng)
                 }
-            })
-
-            val mapFragment =
-                childFragmentManager.findFragmentById(R.id.mapFragmentId) as? SupportMapFragment?
-            mapFragment?.getMapAsync { googleMap ->
-                mMap = googleMap
-                mapReady = true
-                currentLocationMarker = mMap.addMarker(MarkerOptions().position(LatLng(-33.3, 45.4)).title("User Location")
-                    .visible(false))
-                carLocationMarker = mMap.addMarker(MarkerOptions().position(LatLng(-33.3, 45.4)).title("User Location")
-                    .visible(false))
-
-                checkPermissions()
             }
         }
     }
@@ -113,14 +135,15 @@ class MapFragment : Fragment() {
     }
 
 
-
-
-    private fun setCarLocation() {
+    private fun setCarLocation(carLocation: LatLng) {
+        //val bitmap = Bitmap.createBitmap(R.drawable.ic_my_location)
         carLocationMarker.remove()
-        carLocationMarker = mMap.addMarker(MarkerOptions().position(carLocation).title("Car Location"))
+        carLocationMarker =
+            mMap.addMarker(MarkerOptions().position(carLocation).title("Car Location"))
+                //.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_foreground)))
     }
 
-    private fun updateMyLocation() {
+    private fun updateMyLocation(currentLocation: Location) {
 
         val myLocLatLng = LatLng(currentLocation.latitude, currentLocation.longitude)
 
@@ -130,13 +153,15 @@ class MapFragment : Fragment() {
 
          */
         currentLocationMarker.remove()
-        currentLocationMarker = mMap.addMarker(MarkerOptions().position(myLocLatLng).title("User Location")
-            .alpha(.55F)
-            .flat(true))
+        currentLocationMarker = mMap.addMarker(
+            MarkerOptions().position(myLocLatLng).title("User Location")
+                .alpha(.55F)
+                .flat(true)
+        )
 
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocLatLng, 12.0f))
     }
-    
+
 
     /*
     - Google Documentation as of 10.13.21
@@ -152,11 +177,11 @@ class MapFragment : Fragment() {
             ContextCompat.checkSelfPermission(
                 requireContext(),
                 Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED  &&
-            ContextCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED -> {
+            ) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(
+                        requireContext(),
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED -> {
                 //Continue action that requires permission
                 getLocation(fusedLocationClient)
             }
@@ -188,16 +213,20 @@ class MapFragment : Fragment() {
     ) {
 
         if (actionMessage != null) {
-            MaterialAlertDialogBuilder(context,
-                R.style.ThemeOverlay_MaterialComponents_Dialog_Alert)
+            MaterialAlertDialogBuilder(
+                context,
+                R.style.ThemeOverlay_MaterialComponents_Dialog_Alert
+            )
                 .setMessage(msg)
                 .setPositiveButton(actionMessage) { dialog, which ->
                     action(this)
                 }
                 .show()
         } else {
-            MaterialAlertDialogBuilder(context,
-                R.style.ThemeOverlay_MaterialComponents_Dialog_Alert)
+            MaterialAlertDialogBuilder(
+                context,
+                R.style.ThemeOverlay_MaterialComponents_Dialog_Alert
+            )
                 .setMessage(msg)
                 .setPositiveButton(resources.getString(R.string.ok)) { dialog, which ->
                     // Respond to positive button press

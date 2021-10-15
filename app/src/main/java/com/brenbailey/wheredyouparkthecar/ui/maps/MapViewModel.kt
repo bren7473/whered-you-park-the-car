@@ -14,12 +14,17 @@ import com.google.android.gms.tasks.CancellationTokenSource
 class MapViewModel : ViewModel() {
 
 
+
     private val _carLocation = MutableLiveData<LatLng>()
     val carLocation: LiveData<LatLng>
         get()= _carLocation
 
     fun carLocationSetter() {
         _carLocation.value = currentLocation.value?.let { LatLng(it.latitude, it.longitude) }
+    }
+
+    fun savedCarLocationGetter(savedCarLocation: LatLng?) {
+        _carLocation.value = savedCarLocation
     }
 
     private val _currentLocation = MutableLiveData<Location?>()
