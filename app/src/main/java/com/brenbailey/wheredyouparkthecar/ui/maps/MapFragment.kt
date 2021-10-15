@@ -3,9 +3,10 @@ package com.brenbailey.wheredyouparkthecar.ui.maps
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.location.Location
-import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
@@ -17,17 +18,11 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.viewModels
 import com.brenbailey.wheredyouparkthecar.R
 import com.brenbailey.wheredyouparkthecar.databinding.MapFragmentBinding
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
-import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
-import com.google.android.gms.tasks.CancellationToken
-import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.gms.maps.model.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MapFragment : Fragment() {
@@ -36,13 +31,17 @@ class MapFragment : Fragment() {
     private lateinit var carLocation: LatLng
     private lateinit var currentLocation: Location
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var mMap: GoogleMap
     private lateinit var layout: View
+    private lateinit var currentLocationMarker: Marker
+    private lateinit var carLocationMarker: Marker
+    private lateinit var mMap: GoogleMap
+
     private var _binding: MapFragmentBinding? = null
     private val binding get() = _binding!!
     var permissionsGranted: Boolean = false
     private val requiredPermissionsList = arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION)
     private var mapReady = false
+
     private val requestMultiplePermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         permissions ->
         permissions.entries.forEach{
@@ -84,7 +83,8 @@ class MapFragment : Fragment() {
 
             viewModel.currentLocation.observe(viewLifecycleOwner, { currentLocation ->
                 if (currentLocation != null) {
-                    mMap.isMyLocationEnabled = true
+                    this.currentLocation = currentLocation
+                    updateMyLocation()
                 }
             })
 
@@ -93,19 +93,48 @@ class MapFragment : Fragment() {
             mapFragment?.getMapAsync { googleMap ->
                 mMap = googleMap
                 mapReady = true
+                currentLocationMarker = mMap.addMarker(MarkerOptions().position(LatLng(-33.3, 45.4)).title("User Location")
+                    .visible(false))
+                carLocationMarker = mMap.addMarker(MarkerOptions().position(LatLng(-33.3, 45.4)).title("User Location")
+                    .visible(false))
+
                 checkPermissions()
             }
         }
     }
 
-
-    private fun setCarLocation() {
-        mMap.addMarker(MarkerOptions().position(carLocation).title("User Location"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(carLocation))
+    override fun onResume() {
+        super.onResume()
+        checkPermissions()
     }
 
-    private fun updateMap() {
-        TODO("Not yet implemented")
+    override fun onPause() {
+        super.onPause()
+    }
+
+
+
+
+    private fun setCarLocation() {
+        carLocationMarker.remove()
+        carLocationMarker = mMap.addMarker(MarkerOptions().position(carLocation).title("Car Location"))
+    }
+
+    private fun updateMyLocation() {
+
+        val myLocLatLng = LatLng(currentLocation.latitude, currentLocation.longitude)
+
+        /*
+        mMap.addCircle(CircleOptions().center(myLocLatLng).radius(1.0).fillColor(
+            Color.BLUE))
+
+         */
+        currentLocationMarker.remove()
+        currentLocationMarker = mMap.addMarker(MarkerOptions().position(myLocLatLng).title("User Location")
+            .alpha(.55F)
+            .flat(true))
+
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocLatLng, 12.0f))
     }
     
 

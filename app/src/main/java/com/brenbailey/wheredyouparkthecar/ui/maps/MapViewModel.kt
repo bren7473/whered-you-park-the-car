@@ -19,7 +19,7 @@ class MapViewModel : ViewModel() {
         get()= _carLocation
 
     fun carLocationSetter() {
-        _carLocation.value = _currentLocation.value?.let { LatLng(it.latitude, it.longitude) }
+        _carLocation.value = currentLocation.value?.let { LatLng(it.latitude, it.longitude) }
     }
 
     private val _currentLocation = MutableLiveData<Location?>()
