@@ -7,10 +7,13 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlin.math.*
 
 class MapViewModel : ViewModel() {
@@ -59,7 +62,11 @@ class MapViewModel : ViewModel() {
             Log.d("null check ", "failed")
         }
     }
-
+    fun couroutineIdiot(fusedLocationClient: FusedLocationProviderClient) {
+        viewModelScope.launch(Dispatchers.IO) {
+            getLocation(fusedLocationClient)
+        }
+    }
     @SuppressLint("MissingPermission")
     fun getLocation(fusedLocationClient: FusedLocationProviderClient) {
         val cancellationTokenSource = CancellationTokenSource()

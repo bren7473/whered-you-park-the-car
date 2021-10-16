@@ -31,7 +31,7 @@
             android:layout_margin="16dp"
             android:onClick="@{() -> viewModel.carLocationSetter()}"
             app:srcCompat="@drawable/ic_car_park"
-            android:contentDescription="TODO" />
+            android:contentDescription="TODO"/>
 
     </FrameLayout>
 

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
@@ -156,9 +157,14 @@ class MapFragment : Fragment() {
     private fun setCarLocation(carLocation: Location) {
         //val bitmap = Bitmap.createBitmap(R.drawable.ic_my_location)
         val latLng = LatLng(carLocation.latitude, carLocation.longitude)
+
+        val icon: Bitmap = BitmapFactory.decodeResource(activity?.resources, R.drawable.ic_car_map)
         carLocationMarker.remove()
         carLocationMarker = mMap.addMarker(
-            MarkerOptions().position(latLng).title("Car Location"))
+            MarkerOptions()
+                .position(latLng)
+                .title("Car Location")
+                .icon(BitmapDescriptorFactory.fromBitmap(icon)))
                 //.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_foreground)))
     }
 
@@ -172,6 +178,7 @@ class MapFragment : Fragment() {
 
          */
         currentLocationMarker.remove()
+
         currentLocationMarker = mMap.addMarker(
             MarkerOptions().position(myLocLatLng).title("User Location")
                 .alpha(.55F)
