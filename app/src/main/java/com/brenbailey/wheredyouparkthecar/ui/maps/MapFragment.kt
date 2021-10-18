@@ -27,27 +27,38 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.dialog.MaterialDialogs
+import com.google.android.gms.maps.model.LatLng
+
+import com.google.android.gms.maps.model.LatLngBounds
+
+
+
 
 class MapFragment : Fragment() {
     private val viewModel: MapViewModel by viewModels()
 
+    private lateinit var carLocationMarker: Marker
+    private lateinit var currentLocationMarker: Marker
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var layout: View
-    private lateinit var currentLocationMarker: Marker
-    private lateinit var carLocationMarker: Marker
+    private lateinit var materialAlertDialogBuilder: MaterialAlertDialogBuilder
     private lateinit var mMap: GoogleMap
     private lateinit var sharedPreferences: SharedPreferences
-    private lateinit var materialAlertDialogBuilder: MaterialAlertDialogBuilder
+
     private var _binding: MapFragmentBinding? = null
     private val binding get() = _binding!!
-    var permissionsGranted: Boolean = false
+
     private val requiredPermissionsList = arrayOf(
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_FINE_LOCATION
     )
+
+    private var dialog: AlertDialog? = null
     private var mapReady = false
     private var showDistanceDialog = false
-    private var dialog: AlertDialog? = null
+
+
+    var permissionsGranted: Boolean = false
 
 
     private val requestMultiplePermissions =
@@ -90,6 +101,8 @@ class MapFragment : Fragment() {
         mapFragment?.getMapAsync { googleMap ->
             mMap = googleMap
             mapReady = true
+
+            //initialize markers so they can be removed
             currentLocationMarker = mMap.addMarker(
                 MarkerOptions().position(LatLng(-33.3, 45.4)).title("User Location")
                     .visible(false)
@@ -101,10 +114,13 @@ class MapFragment : Fragment() {
 
             showDistanceDialog = sharedPreferences.getBoolean("showDistanceDialog", false)
 
+            //set observers that the UI will react to
             view.let {
                 viewModel.carLocation.observe(viewLifecycleOwner, { carLocation ->
                     val location =
                         setOf(carLocation.latitude.toString(), carLocation.longitude.toString())
+
+                    //store car location in shared prefs
                     sharedPreferences?.edit()?.putStringSet("car_location", location)?.apply()
                     setCarLocation(carLocation)
                 })
@@ -137,8 +153,6 @@ class MapFragment : Fragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.findDistance -> {
-                // navigate to settings screen
-                Log.d("fragment menu click", " triggered")
                 if (dialog?.isShowing == true) {
                     dialog!!.dismiss()
                 }
@@ -159,15 +173,11 @@ class MapFragment : Fragment() {
         checkPermissions()
     }
 
-    override fun onPause() {
-        super.onPause()
-    }
-
 
     private fun setCarLocation(carLocation: Location) {
-        //val bitmap = Bitmap.createBitmap(R.drawable.ic_my_location)
         val latLng = LatLng(carLocation.latitude, carLocation.longitude)
 
+        // create custom car icon
         val icon: Bitmap = BitmapFactory.decodeResource(activity?.resources, R.drawable.ic_car_map)
         carLocationMarker.remove()
         carLocationMarker = mMap.addMarker(
@@ -176,18 +186,11 @@ class MapFragment : Fragment() {
                 .title("Car Location")
                 .icon(BitmapDescriptorFactory.fromBitmap(icon))
         )
-        //.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_foreground)))
     }
 
     private fun updateMyLocation(currentLocation: Location) {
 
         val myLocLatLng = LatLng(currentLocation.latitude, currentLocation.longitude)
-
-        /*
-        mMap.addCircle(CircleOptions().center(myLocLatLng).radius(1.0).fillColor(
-            Color.BLUE))
-
-         */
         currentLocationMarker.remove()
 
         currentLocationMarker = mMap.addMarker(
@@ -199,8 +202,16 @@ class MapFragment : Fragment() {
     }
 
     fun showDistanceDialog(currentDistance: Double) {
+        val bounds =
+            LatLngBounds.Builder()
+                .include(LatLng(currentLocationMarker.position.latitude,
+                currentLocationMarker.position.longitude))
+                .include(LatLng(carLocationMarker.position.latitude, carLocationMarker.position.longitude))
+                .build()
+        mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 50))
+        
         layout.showDialog(
-            "Title",
+            resources.getString(R.string.distance),
             "You are " + currentDistance + " miles from your car",
             getString(R.string.ok)
         ) {
@@ -236,7 +247,7 @@ class MapFragment : Fragment() {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) -> {
                 layout.showDialog(
-                    "Location Access",
+                    resources.getString(R.string.location_required),
                     getString(R.string.permission_required),
                     getString(R.string.ok)
                 ) {

@@ -28,10 +28,6 @@ class MapViewModel : ViewModel() {
     val carLocation: LiveData<Location>
         get()= _carLocation
 
-    private val _loading = MutableLiveData<Int>()
-    val loading: LiveData<Int>
-        get()= _loading
-
     private val _currentLocation = MutableLiveData<Location?>()
     val currentLocation: MutableLiveData<Location?>
         get()= _currentLocation
@@ -39,6 +35,10 @@ class MapViewModel : ViewModel() {
     private val _distance = MutableLiveData<Double>()
     val distance: LiveData<Double>
         get()= _distance
+
+    private val _loading = MutableLiveData<Int>()
+    val loading: LiveData<Int>
+        get()= _loading
 
     private val _materialAlertDialogBuilder = MutableLiveData<MaterialAlertDialogBuilder>()
     val materialAlertDialogBuilder: LiveData<MaterialAlertDialogBuilder>

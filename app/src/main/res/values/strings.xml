@@ -2,12 +2,9 @@
     <string name="app_name">Whered You Park The Car</string>
     <string name="title_activity_maps">MapsActivity</string>
 
-    <string name="permission_required">Location access is required to find your location.</string>
+    <string name="permission_required">Location permission is required to find your location.</string>
     <string name="ok">OK</string>
-    <string name="permission_granted">Location is granted.</string>
-    <string name="launch_activity">Launch activity</string>
-    <string name="location_unknown">Location Unknown</string>
-    <string name="location_updates_label">Location Updates</string>
+    <string name="location_required">Location Permission!.</string>
     <string name="plus">+</string>
     <string name="distance">Distance</string>
 
