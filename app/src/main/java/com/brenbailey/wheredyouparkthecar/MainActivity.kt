@@ -3,6 +3,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
+import dagger.hilt.android.AndroidEntryPoint
 
 class MainActivity : AppCompatActivity(R.layout.activity_main){
 

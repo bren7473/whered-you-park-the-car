@@ -4,9 +4,9 @@
 
     <item
         android:id="@+id/findDistance"
-        android:icon="@drawable/ic_car_park"
-        android:title="title"
-        android:contentDescription="distance"
+        android:icon="@drawable/ic_distance"
+        android:contentDescription="@string/distance"
+        android:title="@string/distance"
         app:showAsAction="ifRoom" />
 
 </menu>

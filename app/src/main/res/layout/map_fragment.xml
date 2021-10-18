@@ -8,7 +8,6 @@
         <variable
             name="viewModel"
             type="com.brenbailey.wheredyouparkthecar.ui.maps.MapViewModel" />
-
     </data>
 
     <FrameLayout
@@ -32,6 +31,14 @@
             android:onClick="@{() -> viewModel.carLocationSetter()}"
             app:srcCompat="@drawable/ic_car_park"
             android:contentDescription="TODO"/>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="@{viewModel.loading}" />
+
 
     </FrameLayout>
 

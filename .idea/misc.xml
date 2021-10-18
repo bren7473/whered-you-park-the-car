@@ -4,12 +4,15 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/drawable-anydpi-v24/ic_stat_name.xml" value="0.13489583333333333" />
+        <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/drawable-anydpi/ic_distance.xml" value="0.2703125" />
         <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/drawable/ic_launch.xml" value="0.13489583333333333" />
         <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/drawable/ic_launcher_background.xml" value="0.159375" />
         <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/layout/activity_main.xml" value="0.13020833333333334" />
         <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/layout/blank_fragment.xml" value="0.1" />
+        <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/layout/loading.xml" value="0.1" />
         <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/layout/map_fragment.xml" value="0.2" />
         <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/menu/top_app_bar.xml" value="0.1" />
+        <entry key="..\:/Users/bren_/Documents/AndroidProjects/WheredYouParkTheCar/app/src/main/res/mipmap-anydpi-v26/ic_car.xml" value="0.15833333333333333" />
       </map>
     </option>
   </component>

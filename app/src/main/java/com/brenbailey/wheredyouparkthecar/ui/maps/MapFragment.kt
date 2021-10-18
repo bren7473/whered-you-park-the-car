@@ -2,16 +2,17 @@ package com.brenbailey.wheredyouparkthecar.ui.maps
 
 import android.Manifest
 import android.annotation.SuppressLint
+import androidx.appcompat.app.AlertDialog
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.location.Location
-import android.location.LocationManager
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import android.widget.ProgressBar
 import androidx.fragment.app.Fragment
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -25,6 +26,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.dialog.MaterialDialogs
 
 class MapFragment : Fragment() {
     private val viewModel: MapViewModel by viewModels()
@@ -35,7 +37,7 @@ class MapFragment : Fragment() {
     private lateinit var carLocationMarker: Marker
     private lateinit var mMap: GoogleMap
     private lateinit var sharedPreferences: SharedPreferences
-
+    private lateinit var materialAlertDialogBuilder: MaterialAlertDialogBuilder
     private var _binding: MapFragmentBinding? = null
     private val binding get() = _binding!!
     var permissionsGranted: Boolean = false
@@ -44,6 +46,9 @@ class MapFragment : Fragment() {
         Manifest.permission.ACCESS_FINE_LOCATION
     )
     private var mapReady = false
+    private var showDistanceDialog = false
+    private var dialog: AlertDialog? = null
+
 
     private val requestMultiplePermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
@@ -77,10 +82,8 @@ class MapFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
-        sharedPreferences = activity?.getPreferences(Context.MODE_PRIVATE)!!;
-
+        sharedPreferences = activity?.getPreferences(Context.MODE_PRIVATE)!!
         layout = view
-
 
         val mapFragment =
             childFragmentManager.findFragmentById(R.id.mapFragmentId) as? SupportMapFragment?
@@ -96,12 +99,13 @@ class MapFragment : Fragment() {
                     .visible(false)
             )
 
+            showDistanceDialog = sharedPreferences.getBoolean("showDistanceDialog", false)
+
             view.let {
                 viewModel.carLocation.observe(viewLifecycleOwner, { carLocation ->
                     val location =
                         setOf(carLocation.latitude.toString(), carLocation.longitude.toString())
                     sharedPreferences?.edit()?.putStringSet("car_location", location)?.apply()
-                    sharedPreferences?.edit()?.putString("something", "not default")?.apply()
                     setCarLocation(carLocation)
                 })
 
@@ -111,17 +115,17 @@ class MapFragment : Fragment() {
                     }
                 })
 
-                val savedCarLocation: Set<String>? = sharedPreferences?.getStringSet("car_location", setOf(""))
-                sharedPreferences?.getString("something", "default")?.let { it1 -> Log.d("int", it1) }
-                if (!savedCarLocation?.elementAt(0).isNullOrEmpty()) {
-                    val savedLocation = Location(LocationManager.GPS_PROVIDER)
-                    if (savedCarLocation != null) {
-                        savedLocation.latitude = savedCarLocation.elementAt(0).toDouble()
-                        savedLocation.longitude = savedCarLocation.elementAt(1).toDouble()
-                        Log.d("saved lat", savedLocation.latitude.toString())
+                viewModel.distance.observe(viewLifecycleOwner, { currentDistance ->
+                    if (showDistanceDialog) {
+                        showDistanceDialog(currentDistance)
                     }
-                    viewModel.savedCarLocationGetter(savedLocation)
-                }
+                })
+
+                val savedCarLocation: Set<String>? =
+                    sharedPreferences?.getStringSet("car_location", setOf(""))
+
+                viewModel.savedCarLocationGetter(savedCarLocation)
+
             }
         }
     }
@@ -135,13 +139,19 @@ class MapFragment : Fragment() {
             R.id.findDistance -> {
                 // navigate to settings screen
                 Log.d("fragment menu click", " triggered")
-                viewModel.distanceCalculator()
+                if (dialog?.isShowing == true) {
+                    dialog!!.dismiss()
+                }
+                    viewModel.distanceCalculator()
+                    showDistanceDialog = true
+                    sharedPreferences.edit().putBoolean("showDistanceDialog", showDistanceDialog)
+                        .apply()
+
                 true
             }
             else -> super.onOptionsItemSelected(item)
         }
     }
-
 
 
     override fun onResume() {
@@ -164,8 +174,9 @@ class MapFragment : Fragment() {
             MarkerOptions()
                 .position(latLng)
                 .title("Car Location")
-                .icon(BitmapDescriptorFactory.fromBitmap(icon)))
-                //.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_foreground)))
+                .icon(BitmapDescriptorFactory.fromBitmap(icon))
+        )
+        //.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher_foreground)))
     }
 
     private fun updateMyLocation(currentLocation: Location) {
@@ -181,11 +192,21 @@ class MapFragment : Fragment() {
 
         currentLocationMarker = mMap.addMarker(
             MarkerOptions().position(myLocLatLng).title("User Location")
-                .alpha(.55F)
                 .flat(true)
         )
 
         mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocLatLng, 12.0f))
+    }
+
+    fun showDistanceDialog(currentDistance: Double) {
+        layout.showDialog(
+            "Title",
+            "You are " + currentDistance + " miles from your car",
+            getString(R.string.ok)
+        ) {
+            showDistanceDialog = false
+            sharedPreferences.edit().putBoolean("showDistanceDialog", showDistanceDialog).apply()
+        }
     }
 
 
@@ -215,6 +236,7 @@ class MapFragment : Fragment() {
                 Manifest.permission.ACCESS_FINE_LOCATION
             ) -> {
                 layout.showDialog(
+                    "Location Access",
                     getString(R.string.permission_required),
                     getString(R.string.ok)
                 ) {
@@ -233,36 +255,37 @@ class MapFragment : Fragment() {
     }
 
     fun View.showDialog(
+        title: String,
         msg: String,
         actionMessage: CharSequence?,
         action: (View) -> Unit
     ) {
 
         if (actionMessage != null) {
-            MaterialAlertDialogBuilder(
-                context,
-                R.style.ThemeOverlay_MaterialComponents_Dialog_Alert
+            materialAlertDialogBuilder = MaterialAlertDialogBuilder(
+                context
             )
+                .setTitle(title)
                 .setMessage(msg)
                 .setPositiveButton(actionMessage) { dialog, which ->
                     action(this)
                 }
-                .show()
+
         } else {
-            MaterialAlertDialogBuilder(
-                context,
-                R.style.ThemeOverlay_MaterialComponents_Dialog_Alert
+            materialAlertDialogBuilder = MaterialAlertDialogBuilder(
+                context, R.style.ThemeOverlay_MaterialComponents_Dialog_Alert
             )
+                .setTitle(title)
                 .setMessage(msg)
+                .setCancelable(false)
                 .setPositiveButton(resources.getString(R.string.ok)) { dialog, which ->
-                    // Respond to positive button press
                 }
-                .show()
         }
+        materialAlertDialogBuilder.show().setCanceledOnTouchOutside(false)
+
     }
 
     private fun getLocation(fusedLocationCLient: FusedLocationProviderClient) {
         viewModel.getLocation(fusedLocationCLient)
     }
-
 }

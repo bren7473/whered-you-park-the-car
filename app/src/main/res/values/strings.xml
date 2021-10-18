@@ -9,5 +9,6 @@
     <string name="location_unknown">Location Unknown</string>
     <string name="location_updates_label">Location Updates</string>
     <string name="plus">+</string>
+    <string name="distance">Distance</string>
 
 </resources>
