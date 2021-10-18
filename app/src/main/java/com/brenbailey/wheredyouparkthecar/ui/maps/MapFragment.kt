@@ -209,7 +209,7 @@ class MapFragment : Fragment() {
                 .include(LatLng(carLocationMarker.position.latitude, carLocationMarker.position.longitude))
                 .build()
         mMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 50))
-        
+
         layout.showDialog(
             resources.getString(R.string.distance),
             "You are " + currentDistance + " miles from your car",
